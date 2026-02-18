@@ -9,7 +9,7 @@ TARGET_DIR="${PARENT_DIR}/AiDocPlus"
 DIST_DIR="${REPO_DIR}/dist"
 DATA_DIR="${REPO_DIR}/data"
 
-echo "📦 部署 AiDocPlus-PromptTemplates → ${TARGET_DIR}"
+echo "[deploy] AiDocPlus-PromptTemplates -> ${TARGET_DIR}"
 
 # 1. 部署 generated TypeScript 文件
 GENERATED_DIR="${TARGET_DIR}/packages/shared-types/src/generated"
@@ -18,9 +18,9 @@ mkdir -p "$GENERATED_DIR"
 for f in prompt-templates.generated.ts template-categories.generated.ts; do
   if [ -f "${DIST_DIR}/${f}" ]; then
     cp "${DIST_DIR}/${f}" "${GENERATED_DIR}/"
-    echo "   ✅ ${f} → generated/"
+    echo "   [ok] ${f} -> generated/"
   else
-    echo "   ⚠️  dist/${f} 不存在，请先运行 build.sh"
+    echo "   [warn] dist/${f} 不存在，请先运行 build.sh"
   fi
 done
 
@@ -46,5 +46,5 @@ find "$DATA_DIR" -name "manifest.json" -not -path "*/_meta.json" | while read -r
 done
 
 TOTAL=$(find "$DATA_DIR" -name "manifest.json" -not -path "*/_meta.json" | wc -l | tr -d ' ')
-echo "   ✅ ${TOTAL} 个模板 → bundled-resources/prompt-templates/"
-echo "✅ AiDocPlus-PromptTemplates 部署完成"
+echo "   [ok] ${TOTAL} 个模板 -> bundled-resources/prompt-templates/"
+echo "[done] AiDocPlus-PromptTemplates 部署完成"

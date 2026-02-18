@@ -103,12 +103,12 @@ export const TEMPLATE_CATEGORIES: Record<string, TemplateCategoryInfo> = {{
 
 
 def main():
-    print("🔨 构建提示词模板数据...")
+    print("[build] 构建提示词模板数据...")
     templates = find_templates(DATA_DIR)
     categories = load_categories(DATA_DIR)
 
     if not templates:
-        print("⚠️  未找到任何模板数据")
+        print("[warn] 未找到任何模板数据")
         sys.exit(1)
 
     # 生成 prompt-templates.generated.ts
@@ -116,16 +116,16 @@ def main():
     output_path = os.path.join(DIST_DIR, "prompt-templates.generated.ts")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(ts_content)
-    print(f"   ✅ {output_path}")
+    print(f"   [ok] {output_path}")
 
     # 生成 template-categories.generated.ts
     cat_content = generate_categories_ts(categories)
     cat_output = os.path.join(DIST_DIR, "template-categories.generated.ts")
     with open(cat_output, "w", encoding="utf-8") as f:
         f.write(cat_content)
-    print(f"   ✅ {cat_output}")
+    print(f"   [ok] {cat_output}")
 
-    print(f"✅ 构建完成: {len(templates)} 个模板, {len(categories)} 个分类")
+    print(f"[done] 构建完成: {len(templates)} 个模板, {len(categories)} 个分类")
 
 
 if __name__ == "__main__":
