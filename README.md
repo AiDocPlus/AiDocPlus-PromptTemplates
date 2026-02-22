@@ -1,58 +1,61 @@
 # AiDocPlus-PromptTemplates
 
-AiDocPlus 提示词模板资源仓库，包含 225 个内置提示词模板和分类定义。
+AiDocPlus 提示词模板资源仓库，包含 982 个内置提示词模板（46 个分类）。
 
-## 资源内容
+## 数据模式
 
-### 模板分类
-
-报告写作、文章创作、邮件撰写、会议纪要、创意写作、技术文档、学术论文、翻译润色、数据分析、营销文案、教育教学、法律文书、公文写作、日常办公、通用
-
-### 模板数量
-
-225 个内置提示词模板，覆盖各类文档写作场景。
+采用 **JSON 文件模式**：每个分类一个 JSON 文件，包含分类元信息和所有模板。
 
 ## 目录结构
 
 ```
-data/
-├── _meta.json                    # 分类定义
-└── {category}/{id}/
-    ├── manifest.json             # 模板元数据（名称、分类、标签、变量）
-    └── content.md                # 模板内容（支持 {{变量}} 占位符）
+data/                              # 每个分类一个 JSON 文件
+├── academic.json                  # 学术写作（12 个模板）
+├── business.json                  # 商务写作
+├── ...                            # 共 46 个分类 JSON 文件
 scripts/
-├── build.sh / build.py           # 构建 → dist/*.generated.ts
-├── deploy.sh                     # 部署到 AiDocPlus 构建目标
-└── extract_from_source.js        # 一次性提取脚本
+├── build.py                       # 读取 data/*.json → dist/*.generated.ts
+├── deploy.sh                      # 部署 JSON 到 bundled-resources + generated TS 到 shared-types
+└── convert_to_json.py             # 一次性转换脚本（从旧目录结构转为 JSON）
+dist/                              # 构建产物（.gitignore 忽略）
 ```
 
 ## 构建和部署
 
 ```bash
-bash scripts/build.sh      # 生成 prompt-templates.generated.ts + template-categories.generated.ts
-bash scripts/deploy.sh      # 部署到 AiDocPlus/packages/shared-types/src/generated/
+python3 scripts/build.py    # 生成 prompt-templates.generated.ts + template-categories.generated.ts
+bash scripts/deploy.sh      # 部署到 AiDocPlus 构建目标（双目标：generated TS + bundled-resources JSON）
 ```
 
-## 模板数据格式
+## 数据格式
 
-**manifest.json**：
+每个分类 JSON 文件格式：
 ```json
 {
-  "id": "template-id",
-  "name": "模板名称",
-  "category": "category-key",
-  "description": "模板描述",
-  "variables": ["变量1", "变量2"],
-  "isBuiltIn": true,
-  "tags": ["标签1", "标签2"]
+  "key": "academic",
+  "name": "学术写作",
+  "icon": "🎓",
+  "order": 7,
+  "templates": [
+    {
+      "id": "template-id",
+      "name": "模板名称",
+      "description": "模板描述",
+      "content": "模板内容，支持 {{变量名}} 占位符",
+      "variables": ["变量1", "变量2"],
+      "order": 0
+    }
+  ]
 }
 ```
 
-**content.md**：模板内容，支持 `{{变量名}}` 占位符语法。
+## 部署产物
 
-## 生成文件
+| 产物 | 部署位置 | 用途 |
+|------|----------|------|
+| `*.generated.ts` | `AiDocPlus/packages/shared-types/src/generated/` | 编译时静态 fallback |
+| `data/*.json` | `AiDocPlus/apps/desktop/src-tauri/bundled-resources/prompt-templates/` | 运行时动态加载（优先） |
 
-| 文件 | 部署位置 |
-|------|----------|
-| `prompt-templates.generated.ts` | `AiDocPlus/packages/shared-types/src/generated/` |
-| `template-categories.generated.ts` | `AiDocPlus/packages/shared-types/src/generated/` |
+## 46 个分类
+
+报告写作、文章创作、邮件撰写、会议纪要、创意写作、技术文档、学术写作、翻译润色、数据分析、营销文案、教育培训、法律文书、公文写作、日常办公、通用、SEO优化、社交媒体、产品文案、内容策略、代码辅助、对话模拟、情感社交、亲子教育、故事写作、AI与数据、客户服务、设计创意、金融财务、美食餐饮、游戏电竞、人力资源、医疗健康、公益组织、宠物、心理咨询、房产置业、体育运动 等

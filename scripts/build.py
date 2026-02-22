@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 AiDocPlus-PromptTemplates 构建脚本
-扫描 data/ 目录，生成 prompt-templates.generated.ts 和 template-categories.generated.ts
+读取 data/*.json 分类文件，生成 prompt-templates.generated.ts 和 template-categories.generated.ts
 """
 import json
 import os
 import sys
+import glob
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(SCRIPT_DIR)
@@ -28,45 +29,44 @@ def ts_string_array(arr: list) -> str:
     return f"[{items}]"
 
 
-def find_templates(data_dir: str):
-    templates = []
-    for root, dirs, files in os.walk(data_dir):
-        if "manifest.json" in files and "content.md" in files:
-            manifest_path = os.path.join(root, "manifest.json")
-            content_path = os.path.join(root, "content.md")
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                manifest = json.load(f)
-            with open(content_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            templates.append((manifest, content))
-    templates.sort(key=lambda t: (t[0].get("majorCategory", ""), t[0].get("order", 0)))
-    return templates
+def load_category_files():
+    """读取 data/*.json，返回 (categories, templates) 列表"""
+    categories = []
+    all_templates = []
+
+    for json_path in sorted(glob.glob(os.path.join(DATA_DIR, "*.json"))):
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        cat_key = data["key"]
+        categories.append({
+            "key": cat_key,
+            "name": data.get("name", cat_key),
+            "icon": data.get("icon", "📋"),
+            "order": data.get("order", 999),
+        })
+
+        for tmpl in data.get("templates", []):
+            all_templates.append((cat_key, tmpl))
+
+    categories.sort(key=lambda c: c["order"])
+    return categories, all_templates
 
 
-def load_categories(data_dir: str):
-    meta_path = os.path.join(data_dir, "_meta.json")
-    if not os.path.exists(meta_path):
-        return {}
-    with open(meta_path, "r", encoding="utf-8") as f:
-        meta = json.load(f)
-    return meta.get("categories", [])
-
-
-def generate_templates_ts(templates):
+def generate_templates_ts(all_templates):
     entries = []
-    for manifest, content in templates:
+    for cat_key, tmpl in all_templates:
         lines = []
         lines.append("  {")
-        lines.append(f"    id: {ts_string(manifest['id'])},")
-        lines.append(f"    name: {ts_string(manifest.get('name', ''))},")
-        lines.append(f"    category: {ts_string(manifest.get('majorCategory', 'general'))},")
-        lines.append(f"    content: {ts_string(content.strip())},")
+        lines.append(f"    id: {ts_string(tmpl['id'])},")
+        lines.append(f"    name: {ts_string(tmpl.get('name', ''))},")
+        lines.append(f"    category: {ts_string(cat_key)},")
+        lines.append(f"    content: {ts_string(tmpl.get('content', ''))},")
         lines.append(f"    isBuiltIn: true,")
-        if manifest.get("description"):
-            lines.append(f"    description: {ts_string(manifest['description'])},")
-        if manifest.get("variables"):
-            var_names = [v["name"] if isinstance(v, dict) else v for v in manifest["variables"]]
-            lines.append(f"    variables: {ts_string_array(var_names)},")
+        if tmpl.get("description"):
+            lines.append(f"    description: {ts_string(tmpl['description'])},")
+        if tmpl.get("variables"):
+            lines.append(f"    variables: {ts_string_array(tmpl['variables'])},")
         lines.append("  },")
         entries.append("\n".join(lines))
 
@@ -104,15 +104,14 @@ export const TEMPLATE_CATEGORIES: Record<string, TemplateCategoryInfo> = {{
 
 def main():
     print("[build] 构建提示词模板数据...")
-    templates = find_templates(DATA_DIR)
-    categories = load_categories(DATA_DIR)
+    categories, all_templates = load_category_files()
 
-    if not templates:
+    if not all_templates:
         print("[warn] 未找到任何模板数据")
         sys.exit(1)
 
     # 生成 prompt-templates.generated.ts
-    ts_content = generate_templates_ts(templates)
+    ts_content = generate_templates_ts(all_templates)
     output_path = os.path.join(DIST_DIR, "prompt-templates.generated.ts")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(ts_content)
@@ -125,7 +124,7 @@ def main():
         f.write(cat_content)
     print(f"   [ok] {cat_output}")
 
-    print(f"[done] 构建完成: {len(templates)} 个模板, {len(categories)} 个分类")
+    print(f"[done] 构建完成: {len(all_templates)} 个模板, {len(categories)} 个分类")
 
 
 if __name__ == "__main__":

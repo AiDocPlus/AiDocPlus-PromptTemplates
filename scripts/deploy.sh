@@ -1,15 +1,17 @@
 #!/bin/bash
 # AiDocPlus-PromptTemplates deploy.sh
+# 简化版：直接复制分类 JSON 文件，不再合并
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 PARENT_DIR="$(dirname "$REPO_DIR")"
 TARGET_DIR="${PARENT_DIR}/AiDocPlus"
+DEV_DIR="${PARENT_DIR}/AiDocPlus-Main"
 DIST_DIR="${REPO_DIR}/dist"
 DATA_DIR="${REPO_DIR}/data"
 
-echo "[deploy] AiDocPlus-PromptTemplates -> ${TARGET_DIR}"
+echo "[deploy] AiDocPlus-PromptTemplates"
 
 # 1. 部署 generated TypeScript 文件
 GENERATED_DIR="${TARGET_DIR}/packages/shared-types/src/generated"
@@ -24,27 +26,20 @@ for f in prompt-templates.generated.ts template-categories.generated.ts; do
   fi
 done
 
-# 2. 部署模板数据到 bundled-resources
-BUNDLED_DIR="${TARGET_DIR}/apps/desktop/src-tauri/bundled-resources/prompt-templates"
-mkdir -p "$BUNDLED_DIR"
+# 2. 部署分类 JSON 文件到 bundled-resources（构建目标 + 开发目标）
+BUNDLED_BUILD="${TARGET_DIR}/apps/desktop/src-tauri/bundled-resources/prompt-templates"
+BUNDLED_DEV="${DEV_DIR}/apps/desktop/src-tauri/bundled-resources/prompt-templates"
 
-# 复制 _meta.json
-if [ -f "${DATA_DIR}/_meta.json" ]; then
-  cp "${DATA_DIR}/_meta.json" "${BUNDLED_DIR}/"
-fi
-
-# 复制所有模板目录（按分类/ID 结构）
-TEMPLATE_COUNT=0
-find "$DATA_DIR" -name "manifest.json" -not -path "*/_meta.json" | while read -r manifest_file; do
-  tmpl_dir="$(dirname "$manifest_file")"
-  # 获取相对路径（如 editing/polish-pro）
-  rel_path="${tmpl_dir#${DATA_DIR}/}"
-  target_dir="${BUNDLED_DIR}/${rel_path}"
-  mkdir -p "$target_dir"
-  cp "${tmpl_dir}/manifest.json" "$target_dir/"
-  [ -f "${tmpl_dir}/content.md" ] && cp "${tmpl_dir}/content.md" "$target_dir/"
+for BUNDLED_DIR in "$BUNDLED_BUILD" "$BUNDLED_DEV"; do
+  mkdir -p "$BUNDLED_DIR"
+  # 清理旧文件（all-templates.json、_meta.json、旧目录）
+  rm -f "$BUNDLED_DIR/all-templates.json" "$BUNDLED_DIR/_meta.json"
+  find "$BUNDLED_DIR" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+  # 复制分类 JSON 文件
+  cp "${DATA_DIR}"/*.json "$BUNDLED_DIR/"
 done
 
-TOTAL=$(find "$DATA_DIR" -name "manifest.json" -not -path "*/_meta.json" | wc -l | tr -d ' ')
-echo "   [ok] ${TOTAL} 个模板 -> bundled-resources/prompt-templates/"
+JSON_COUNT=$(ls -1 "${DATA_DIR}"/*.json 2>/dev/null | wc -l | tr -d ' ')
+echo "   [ok] ${JSON_COUNT} 个分类 JSON -> bundled-resources/prompt-templates/"
+
 echo "[done] AiDocPlus-PromptTemplates 部署完成"
