@@ -32,8 +32,8 @@ BUNDLED_DEV="${DEV_DIR}/apps/desktop/src-tauri/bundled-resources/prompt-template
 
 for BUNDLED_DIR in "$BUNDLED_BUILD" "$BUNDLED_DEV"; do
   mkdir -p "$BUNDLED_DIR"
-  # 清理旧文件（all-templates.json、_meta.json、旧目录）
-  rm -f "$BUNDLED_DIR/all-templates.json" "$BUNDLED_DIR/_meta.json"
+  # 清理目标目录中所有旧文件（防止已删除的分类 JSON 残留导致重复 key）
+  rm -f "$BUNDLED_DIR"/*.json
   find "$BUNDLED_DIR" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
   # 复制分类 JSON 文件
   cp "${DATA_DIR}"/*.json "$BUNDLED_DIR/"
